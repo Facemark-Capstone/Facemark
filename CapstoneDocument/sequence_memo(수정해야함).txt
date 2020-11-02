@@ -1,0 +1,11 @@
+1. 정면사진 받아옴
+2. Landmark 추출
+3. face midLine(c1,c2,c3이용)수직선을 기준으로 128x128 이미지 추출
+4. DD(x,y) , EOS(x,y), Craniofacial ratio값 추출
+5. Landmark정보 json으로 출력
+6. Landmark json입력 cpp로 출력 후 feature 추출
+  feature : 왼,오 Landmark의 길이, 각도, 면적의 차이에 대한 통계수치
+7. 6의 feature정보 json으로 출력
+8. 7의 json파일 python으로 출력하여 feature로 저장
+9. 머신러닝
+10. 사진의 비대칭 결과가 담긴 정보를 json으로 반환

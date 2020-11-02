@@ -1,0 +1,112 @@
+from abc import *
+
+
+### 
+IO <- Feature: 합성관계
+Length, Angle, Area <-Figure : 합성관계
+Feature <- Length, Angle, Area, DensityDifference, Edge Oriantation Similarity, CranioFacialRatio : 일반화관계
+MachineLearning <- Feature : 의존관계
+###
+
+class IO :
+	list landmark
+	Image image
+	Image Grad_x, Grad_y
+	Feature ft[] #다형성
+
+	def __init__(self, Image) :
+	def extractLandmark() : // landmark 코드
+	def extractMidLine() : #c1,c2,c3 점을 이용하여 만든 midline으로 128x128 이미지 출력
+	// 1. midline추출, 2. midline기준으로 회전하여 Landmark Update
+	// 3. GrayScale, 4. Sobel(mag, theta) -> extractSobel():
+	def extractConvolve() : # GrayScale출력 후 Gradient x, Gradient y 구함
+	def extractFeature() : #ft 초기화, calResult -> 다형성 : 시퀀스 6개
+	def getFeature() # Feature반환
+	def writeResultJson(bool res): #return json: 
+				 #(area의 diff값들, CranioFacialRatio의 score, 인자로 받은 res(label)값 출력
+
+class Feature(metaclass = ABCMeta) :
+	list leftLandmark
+	list rightLandmark
+	Image ig # sobel(mag, theta) 이미지 들어감
+	
+	def __init__(self, Image g1, Image g2) : 
+		#g1: gradient x, g2: gradient y
+	def __init__(self, list lm) :
+		#leftLandmark, rightLandmark 초기화
+	@abstractmethod
+	def calResult(self) :
+		pass
+
+class Figure :
+	float stdDev;
+   	float variance;
+    	float mean;
+   	float mode;
+   	float median;
+   	float percentile;
+   	float skewness;
+	
+class CranioFacialRatio(Feaure) :
+	float FacialIndex        #(n − gn)/(zy − zy)
+	float MandibularIndex
+	float IntercanthalIndex
+	float OrbitalWidthIndex
+	float EyeFissureIndex
+	float NasalIndex
+	float VermilionHeightIndex
+	float Mouth-faceWidthIndex
+	float score	
+	
+	def __init__(self, list lm) :
+	def calResult() :
+	def setScore() :
+
+class Length(Feature) :
+	Figure fg
+
+	def __init__(self, list lm) :
+	def calResult(self) :
+
+class Angle(Feature) :
+	Figure fg
+
+	def __init__(self, list lm) :
+	def calResult(self) :
+
+class Area(Feature) :
+	Figure fg
+	float eyeDiff;
+  	float noseDiff;
+    	float mouthDiff;
+   	float jawDiff;
+	float eyebrowDiff;
+
+	def __init__(self, list lm) :
+	def calResult(self) :
+	def calFaceByPart() :
+
+class DensityDiff(Feature) 
+	float mean
+	def __init__(self, Image g1, Image g2) : 
+	def calResult(self) :
+
+class EdgeOrientationSimilarity(Feature)
+	float mean
+	def __init__(self, Image g1, Image g2) :
+	def calResult(self) :
+
+class MachineLearning :
+	bool symResult;
+	MachineLearning(self, Feature[] ft): # modelTest(Feature[] ft) 실행
+	def modelTest(Feature[] ft):
+	def getResult(); # symResult 반환
+
+io = IO("image.png")
+io.extractLandmark()
+io.extractMidLineImage()
+io.extractFeature()
+ml = MachineLearning(io.getFeature())
+io.writeResultJson(ml.getResult())
+
+
