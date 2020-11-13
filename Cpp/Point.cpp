@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <math.h>
 #include <vector>
 #include <memory.h>
@@ -31,36 +32,33 @@ public:
     bool inBoundingRectangle(Point p, Point a, Point b); // 선분(ab)위 점(p)인지 확인
     bool segmentIntersection(Point a, Point b, Point c, Point d, Point& p); // 두직선이 겹치거나 교차하는지 판단. if(true) set 교점p
     int segmentIntersects(Point a, Point b, Point c, Point d); // 두 직선 교차여부만 판별(교차x, 교차o, 무수히 많은 점에서 교차)
-    vector<Point> convexHull(vector<Point>& poly); // 볼록 다각형 반환. 컨벡스 헐(그라함 스캔 O(NlogN))이용
-    double areaIntersects(Point &a, Point &b); // 두 면적이 겹치는 부분 계산
+    void convexHull(vector<Point> &v); // 볼록 다각형 반환. 컨벡스 헐(그라함 스캔 O(NlogN)->정렬시간복잡도)이용
+    // 미구현
+    double areaOverlap(vector<Point> &a, vector<Point> &b); // 두 면적이 겹치는 부분의 넓이 계산
 };
 
-// a가 b보다 p에 얼마나 가까운지
-double howMuchCloser(Point p, Point a, Point b){
-    return (b-p).norm() - (a-p).norm();
-}
-
-// 반환을 0,1,-1로 안해주면 밑의 다른함수에서 ccw()*ccw()계산이 4제곱이기 때문에 오버플로우 발생가능
-int ccw(Point p, Point a, Point b) {
+// 반환을 0,1,-1로 안해주면 segmentIntersects함수의 ccw()*ccw()계산에서 오버플로우 발생가능
+int Vector2::ccw(Point p, Point a, Point b) {
     double ret = (a-p).cross(b-p);
     if (fabs(ret) < EPS) return 0;
     else if(ret < 0) return -1;
     else return 1;
 }
 // 반환범위 오버플로우 생각해야 함
-double ccw2(Point p, Point a, Point b) { // 면적계산용( BOJ_2166 참고 )
+double Vector2::ccw2(Point p, Point a, Point b) { // 면적계산용( BOJ_2166 참고 )
     double ret = (a-p).cross(b-p);
     return ret;
 }
 
 //두 벡터의 사이각(rad) *180/PI 해줘야 각도 나옴
-double intervalAngle(Point a, Point b) {
+double Vector2::intervalAngle(Point a, Point b) {
 	return acos(a.dot(b) / (a.norm()*b.norm()));
 }
 
 //단순 다각형 p의 넓이를 구한다.
-double area(const vector<Point>&p){
+double Vector2::area(const vector<Point>&p){
     double ret=0;
+    if(p.size()<3) return 0;
     for(int i=0;i<p.size();i++) {
         int j=(i+1)%p.size();
         ret+=p[i].cross(p[j]);
@@ -69,7 +67,7 @@ double area(const vector<Point>&p){
 }
 
 // 두 직선이 평행할때(기울기만 평행, 같은직선) false, 교차시 true리턴
-bool lineIntersection(Point a, Point b, Point c, Point d, Point& x) {
+bool Vector2::lineIntersection(Point a, Point b, Point c, Point d, Point& x) {
     double det = (b - a).cross(d - c);
     if (fabs(det) < EPS) return false;
     x = a + (b - a) * ((c - a).cross(d - c) / det);
@@ -77,10 +75,10 @@ bool lineIntersection(Point a, Point b, Point c, Point d, Point& x) {
 }
 
 // 평행한 두 직선이 input, 교차판단
-bool paralleSegments(Point a, Point b, Point c, Point d, Point& p) {
+bool Vector2::paralleSegments(Point a, Point b, Point c, Point d, Point& p) {
     if (b < a) swap(a, b); // 벡터ab 방향이 ba라면 ab로 바꿔줌
     if (d < c) swap(c, d); // 벡터cd 방향이 dc라면 cd로 바꿔줌
-    // 같은 직선에 있지않으면 ccw에 의해 false, 같은 직선위지만 선분ab,cd가 최소 한 점에서 교차하지 않으면 false
+    // 같은 직선에 있지않으면 ccw에 의해 false, 같은 직선위지만 선분ab, cd가 최소 한 점에서 교차하지 않으면 false
     if (ccw(a, b, c) != 0 || b < c || d < a) return false;
     if (a < c) p = c;
     else p = a;
@@ -88,19 +86,20 @@ bool paralleSegments(Point a, Point b, Point c, Point d, Point& p) {
 }
 
 // 선분(ab)위 점(p)인지 확인
-bool inBoundingRectangle(Point p, Point a, Point b) {
+bool Vector2::inBoundingRectangle(Point p, Point a, Point b) {
     if (b < a) swap(a, b);
     return p == a || p == b || (a < p && p < b);
 }
 
-bool segmentIntersection(Point a, Point b, Point c, Point d, Point& p) {
+// 선분 ab, 선분 cd 교차판별, p에 교차점 저장
+bool Vector2::segmentIntersection(Point a, Point b, Point c, Point d, Point& p) {
     if (!lineIntersection(a, b, c, d, p))
         return paralleSegments(a, b, c, d, p);
     return inBoundingRectangle(p, a, b) && inBoundingRectangle(p, c, d);
 }
 
 // 교차여부만 판별
-int segmentIntersects(Point a, Point b, Point c, Point d) {
+int Vector2::segmentIntersects(Point a, Point b, Point c, Point d) {
     if (ccw(a, b, c) == 0 && ccw(a, b, d) == 0) { // 두선분 모두 한 직선위 일때
         if (b < a) swap(a, b);
         if (d < c) swap(c, d);
@@ -115,12 +114,33 @@ int segmentIntersects(Point a, Point b, Point c, Point d) {
     }
 }
 
+void Vector2::convexHull(vector<Point> &v){
+    if(v.size()<3) return;
+    swap(v[0],*min_element(v.begin(), v.end()));
+    sort(++v.begin(), v.end(), [&](Point a, Point b) -> bool {
+        int ret = ccw(v[0], a, b);
+        return ret > 0  || (ret==0 && a < b);
+    });
+
+    vector<Point> hull;
+    hull.emplace_back(v[0]);
+    hull.emplace_back(v[1]);
+    for(int i=2; i<v.size(); i++){
+        while(hull.size()>1 && ccw(v[i], hull[hull.size()-2], hull[hull.size()-1])<=0){
+            hull.pop_back();
+        }
+        hull.emplace_back(v[i]);
+    }
+    v = hull;
+}
+
 int main() {
     ios_base::sync_with_stdio(0);
     cin.tie(0);
 
     Point a = Point(0,0);
     Point b = Point(3,4);
-    Point c = a-b;
-    cout<<c.norm();
+    Point c = b-a;
+    Point d = c.normalize();
+    cout<<d.x<<' '<<d.y;
 }
