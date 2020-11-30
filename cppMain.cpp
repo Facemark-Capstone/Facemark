@@ -7,11 +7,11 @@
 #include <string>
 using namespace std;
 const double EPS = 1e-8;
-const double PI = 3.1415926535;
+const double PI = 3.141592653;
 
 struct Point {
     double x, y;
-    Point(double x_ = 0, double y_ = 0) :x(x_), y(y_) {}
+    Point(double x_ = 0.0, double y_ = 0.0) :x(x_), y(y_) {}
     bool operator==(const Point& pt) const { return x == pt.x && y == pt.y; }
     bool operator!=(const Point& pt) const { return x != pt.x || y != pt.y; }
     bool operator<(const Point& pt) const { return x != pt.x ? x < pt.x : y < pt.y; }
@@ -60,12 +60,13 @@ double Vector2::pointToPoint(Point a, Point b) {
 }
 
 double Vector2::intervalAngle(Point a, Point b) {
-    return b.dot(a) / a.norm() / b.norm();
+    double t = a.norm() * b.norm();
+    return b.dot(a) / t;
 }
 
 double Vector2::area(const vector<Point>& p) {
-    double ret = 0;
-    if (p.size() < 3) return 0;
+    double ret = 0.0;
+    if (p.size() < 3) return 0.0;
     for (int i = 0; i < p.size(); i++) {
         int j = (i + 1) % p.size();
         ret += p[i].cross(p[j]);
@@ -194,11 +195,9 @@ double Vector2::areaNonOverlap(vector<Point>& poly1, vector<Point>& poly2) {
     double area1 = area(hull1);
     double area2 = area(hull2);
     double overlapArea = area(ans);
-    if(fabs(area1)<EPS) area1 = 0;
-    if(fabs(area2)<EPS) area2 = 0;
-    if(fabs(overlapArea)<EPS) overlapArea = 0;
-    if(area1==0 && area2==0) return 1.0;
-    else return overlapArea*2/(area1+area2);
+
+    if(fabs(area1)<EPS && fabs(area2)<EPS) return 1.0;
+    else return overlapArea*2.0/(area1+area2);
 }
 
 class Landmark {
@@ -209,7 +208,6 @@ public:
     vector<Point> rEye, lEye;
     vector<Point> rMouth, lMouth;
     vector<Point> midPoint;
-    vector<Point> tmpMidPoint;
     vector<Point> rFace, lFace;
 
     void setMarks() {
@@ -239,7 +237,7 @@ public:
         Point tmp;
         for(int i=0; i<rFace.size(); i++){
             tmp = rFace[i] + lFace[i]; 
-            tmp.x/=2; tmp.y/=2;
+            tmp.x/=2.0; tmp.y/=2.0;
             midPoint.push_back(tmp);
         }
     }
@@ -248,12 +246,12 @@ public:
 class Figure {
 public:
     vector<double> diff;
-    long double mean;
-    long double median;
-    long double stdDev;
-    long double variance;
-    long double skewness;
-    long double kurtosis;
+    double mean;
+    double median;
+    double stdDev;
+    double variance;
+    double skewness;
+    double kurtosis;
 
     Figure(vector<double>& diff) { this->diff = diff; }
     void calValues() {
@@ -263,22 +261,22 @@ public:
         calSkewAndKur();
     }
     void calMeanAndMid() {
-        long double sum = 0;
-        for (int i = 0; i < diff.size(); i++) sum += diff[i];
-        mean = sum / diff.size();
+        double sum = 0.0;
+        for (int i = 0; i < diff.size(); i++) sum += (double)diff[i];
+        mean = sum / (double)diff.size();
         median = diff[diff.size() / 2];
     }
     void calStdDev() {
-        long double sum = 0;
+        double sum = 0.0;
         for (int i = 0; i < diff.size(); i++)
             sum += (diff[i] - mean) * (diff[i] - mean);
-        variance = sum / (diff.size() - 1);
+        variance = sum / (double)(diff.size() - 1);
         stdDev = sqrt(variance);
     }
     void calSkewAndKur() {
-        skewness = 0;
-        kurtosis = 0;
-        long double sum1 = 0, sum2 = 0;
+        skewness = 0.0;
+        kurtosis = 0.0;
+        double sum1 = 0.0, sum2 = 0.0;
         for (int i = 0; i < diff.size(); i++) {
             sum2 = diff[i] - mean;
             sum1 = sum2 * sum2 * sum2;
@@ -288,13 +286,13 @@ public:
         }
         double std3 = stdDev * stdDev * stdDev;
         if (fabs(std3) < EPS || fabs(std3 * stdDev) < EPS) {
-            skewness = 0;
-            kurtosis = 0;
+            skewness = 0.0;
+            kurtosis = 0.0;
             return;
         }
-        skewness = skewness / (diff.size() * std3);
-        kurtosis = kurtosis / (diff.size() * std3 * stdDev);
-        kurtosis -= 3;
+        skewness = skewness / ((double)diff.size() * std3);
+        kurtosis = kurtosis / ((double)diff.size() * std3 * stdDev);
+        kurtosis -= 3.0;
     }
 };
 
@@ -329,9 +327,9 @@ public:
                     if (lm->midPoint[j] == lm->midPoint[i]) continue;
                     angle = v2d->intervalAngle((lm->lFace[a]) - (lm->rFace[a]), (lm->midPoint[j]) - (lm->midPoint[i]));
                     angle = acos(angle);
-                    angle = (angle * 180 / PI) - 90;
-                    if(fabs(angle)<EPS) angle=0;
-                    this->diff.push_back(fabs(angle));
+                    angle = (angle * 180.0 / PI) - 90.0;
+                    if(fabs(angle)<EPS) this->diff.push_back(0);
+                    else this->diff.push_back(fabs(angle));
                 }
             }
         }
@@ -350,11 +348,9 @@ public:
                 if (lm->rFace[a] == lm->lFace[a] && lm->rFace[b] == lm->lFace[b]) continue;
                 rLen = v2d->pointToPoint(lm->rFace[a], lm->rFace[b]);
                 lLen = v2d->pointToPoint(lm->lFace[a], lm->lFace[b]);
-                if(fabs(rLen)<EPS) rLen=0;
-                if(fabs(lLen)<EPS) lLen=0;
+                if(fabs(rLen)<EPS && fabs(lLen)<EPS) {this->diff.push_back(1.0); continue;}
                 if(rLen > lLen) swap(rLen, lLen);
-                if(fabs(lLen)<EPS) this->diff.push_back(1.0);
-                else this->diff.push_back(rLen/lLen);
+                this->diff.push_back(rLen/lLen);
             }
         }
 
@@ -375,13 +371,13 @@ public:
                     if (lm->lFace[a] == lm->lFace[b] || lm->lFace[c] == lm->lFace[b]) continue;
                     rAngle = v2d->intervalAngle(lm->rFace[a] - lm->rFace[b], lm->rFace[c] - lm->rFace[b]);
                     lAngle = v2d->intervalAngle(lm->lFace[a] - lm->lFace[b], lm->lFace[c] - lm->lFace[b]);
-                    if(rAngle<0) rAngle = fabs(rAngle) + 1;
-                    if(lAngle<0) lAngle = fabs(lAngle) + 1;
-                    if(fabs(rAngle)<EPS) rAngle=0;
-                    if(fabs(lAngle)<EPS) lAngle=0;
+                    if(fabs(rAngle)<EPS && fabs(lAngle)<EPS) {this->diff.push_back(1.0); continue;}
+                    if(fabs(rAngle)<EPS) rAngle = 0.0;
+                    if(fabs(lAngle)<EPS) lAngle = 0.0;
+                    if(rAngle<0) rAngle = fabs(rAngle) + 1.0;
+                    if(lAngle<0) lAngle = fabs(lAngle) + 1.0;
                     if(rAngle > lAngle) swap(rAngle, lAngle);
-                    if(fabs(lAngle)<EPS) this->diff.push_back(1.0);
-                    else this->diff.push_back(fabs(rAngle/lAngle));
+                    this->diff.push_back(fabs(rAngle/lAngle));
                 }
             }
         }
@@ -415,11 +411,9 @@ public:
                         lPoly = v2d->convexHull(lPoly);
                         rArea = v2d->area(rPoly);
                         lArea = v2d->area(lPoly);
-                        if(fabs(rArea)<EPS) rArea = 0;
-                        if(fabs(lArea)<EPS) lArea = 0;
+                        if(fabs(rArea)<EPS && fabs(lArea)<EPS) {diff.push_back(1.0); continue;}
                         if(rArea > lArea) swap(rArea, lArea);
-                        if(fabs(lArea)<EPS) diff.push_back(1.0);
-                        else diff.push_back(rArea/lArea);
+                        diff.push_back(rArea/lArea);
                     }
                 }
             }
@@ -438,15 +432,16 @@ public:
             return;
         }
         double a = mL.y / mL.x;
+        if(fabs(a)>10000.0) a = a>0 ? 10000.0 : -10000.0;
         double b = pt2.y + (-a * pt2.x);
         double x, y;
         for (int i = 0; i < part.size(); i++) {
             x = part[i].x;
             y = part[i].y;
-            double nx = ((1 - a * a) * x + 2 * a * y - 2 * a * b) / (1 + a * a);
-            double ny = (2 * a * x - (1 - a * a) * y + 2 * b) / (1 + a * a);
-            nx = round(nx * 1000) / 1000.0;
-            ny = round(ny * 1000) / 1000.0;
+            double nx = ((1.0 - a * a) * x + 2.0 * a * y - 2.0 * a * b) / (1.0 + a * a);
+            double ny = (2.0 * a * x - (1.0 - a * a) * y + 2.0 * b) / (1.0 + a * a);
+            nx = round(nx * 10000.0) / 10000.0;
+            ny = round(ny * 10000.0) / 10000.0;
             part[i].x = nx;
             part[i].y = ny;
         }
@@ -455,8 +450,10 @@ public:
     void calFaceByPart() {
         Point a,b;
     
-        a = lm->all[21]+lm->all[22]; a.x/=2; a.y/=2;
-        b = lm->all[39]+lm->all[42]; b.x/=2; b.y/=2;
+        a = lm->all[39]+lm->all[42]; a.x /= 2.0; a.y /= 2.0;
+        //b = lm->all[27];
+        b = a;
+        b.y = b.y+2000.0;
         beSymmetricalPoint(a,b,lm->rEye);
         a = lm->all[27];
         b = lm->all[33];
@@ -466,8 +463,8 @@ public:
         b = lm->all[57];
         beSymmetricalPoint(a,b,lm->rMouth);
 
-        a = lm->all[51]+lm->all[57]; a.x/=2; a.y/=2;
-        b = lm->all[8];
+        a = lm->all[39]+lm->all[42]; a.x /= 2.0; a.y /= 2.0;
+        b = lm->all[33];
         beSymmetricalPoint(a,b,lm->rJaw);
         
         lm->rFace.clear();
