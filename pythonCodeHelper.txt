@@ -1,0 +1,11 @@
+python1
+input : image Address
+necessity : shape_predictor_68_face_landmarks.dat
+
+python2
+input from cpp : string like('0.086520 0.033711 0.027085 0.164575 3.586028 13.198047 0.951087 0.956866 0.001254 0.035414 -0.967821 1.300348 0.907035 0.974615 0.037756 0.194308 -3.352609 11.007900 0.898881 0.895747 0.001661 0.040753 -0.486027 5.754419 0.681867 0.813642 0.088124 0.296856 -1.248157 0.235083 0.05316176582 0.90177222709 66.548158 71.029645 76.950820 79.873279 88.831821 76.646745')
+output : string like(2 76.646745 66.548158 71.029645 76.95082 79.873279 88.831821) ----> asy(1/2), score, eye, nose, mouth, jaw, face
+	if asy == 1 ---> Asymmetry 
+	if asy == 2 ---> symmetry
+necessity : model.h5 -----> i also give you another version of model named model2.h5. model1 is using model. If you have any time to check another model, ckecking model2 at the real mobile app. If model2 is more good, you can use model2 also.
+
