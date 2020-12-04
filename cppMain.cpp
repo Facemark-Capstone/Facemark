@@ -197,6 +197,7 @@ double Vector2::areaNonOverlap(vector<Point>& poly1, vector<Point>& poly2) {
     double overlapArea = area(ans);
 
     if(fabs(area1)<EPS && fabs(area2)<EPS) return 1.0;
+    else if(fabs(area1)<EPS || fabs(area2)<EPS) return 0.0;
     else return overlapArea*2.0/(area1+area2);
 }
 
@@ -246,12 +247,12 @@ public:
 class Figure {
 public:
     vector<double> diff;
-    double mean;
-    double median;
-    double stdDev;
-    double variance;
-    double skewness;
-    double kurtosis;
+    double mean=0.0;
+    double median=0.0;
+    double stdDev=0.0;
+    double variance=0.0;
+    double skewness=0.0;
+    double kurtosis=0.0;
 
     Figure(vector<double>& diff) { this->diff = diff; }
     void calValues() {
@@ -319,17 +320,16 @@ public:
     Line(Landmark* lm, Vector2* v2d) : Feature(lm, v2d) {}
 
     virtual void calDiff() {
-        double angle;
+        double angle=0.0;
         for (int i = 0; i < lm->midPoint.size(); i++) {
             for (int j = i + 4; j < lm->midPoint.size(); j+=2) {
                 for (int a = 0; a < lm->lFace.size(); a++) {
                     if (lm->lFace[a] == lm->rFace[a]) continue;
                     if (lm->midPoint[j] == lm->midPoint[i]) continue;
                     angle = v2d->intervalAngle((lm->lFace[a]) - (lm->rFace[a]), (lm->midPoint[j]) - (lm->midPoint[i]));
-                    angle = acos(angle);
-                    angle = (angle * 180.0 / PI) - 90.0;
-                    if(fabs(angle)<EPS) this->diff.push_back(0);
-                    else this->diff.push_back(fabs(angle));
+                    if(fabs(angle)<EPS) {this->diff.push_back(0.0); continue;}
+                    if(angle < 0) angle = fabs(angle);
+                    this->diff.push_back(fabs(angle));
                 }
             }
         }
@@ -342,7 +342,7 @@ class Length : public Feature {
 public:
     Length(Landmark* lm, Vector2* v2d) : Feature(lm, v2d) {}
     virtual void calDiff() {
-        double rLen, lLen;
+        double rLen=0.0, lLen=0.0;
         for (int a = 0; a < lm->lFace.size(); a++) {
             for (int b = a + 1; b < lm->lFace.size(); b++) {
                 if (lm->rFace[a] == lm->lFace[a] && lm->rFace[b] == lm->lFace[b]) continue;
@@ -362,7 +362,7 @@ class Angle : public Feature {
 public:
     Angle(Landmark* lm, Vector2* v2d) : Feature(lm, v2d) {}
     virtual void calDiff() {
-        double rAngle, lAngle;
+        double rAngle=0.0, lAngle=0.0;
         for (int a = 0; a < lm->lFace.size(); a++) {
             for (int b = a + 1; b < lm->lFace.size(); b++) {
                 for (int c = b + 1; c < lm->lFace.size(); c++) {
@@ -388,17 +388,10 @@ public:
 
 class Area : public Feature {
 public:
-    double faceDiff;
-    double eyeDiff;
-    double noseDiff;
-    double mouthDiff;
-    double jawDiff;
-    
     Area(Landmark* lm, Vector2* v2d) : Feature(lm, v2d) {}
-
     virtual void calDiff() {
         vector<Point> rPoly, lPoly;
-        double rArea, lArea;
+        double rArea=0.0, lArea=0.0;
         for (int a = 0; a < lm->rFace.size(); a++) {
             for (int b = a + 1; b < lm->rFace.size(); b++) {
                 for (int c = b + 1; c < lm->rFace.size(); c++) {
@@ -418,18 +411,83 @@ public:
                 }
             }
         }
-        calFaceByPart();
     }
 
-    void beSymmetricalPoint(Point pt1, Point pt2, vector<Point> &part) {
-        Point mL;
-        mL = pt1-pt2;
+};
+
+class LocalSymmetry : public Feature {
+public:
+    vector<double> eyeDiff;
+    vector<double> noseDiff;
+    vector<double> mouthDiff;
+    vector<double> jawDiff;
+    vector<double> faceDiff;
+    double eyeMean=0.0, noseMean=0.0, mouthMean=0.0, jawMean=0.0, faceMean=0.0;
+
+    LocalSymmetry(Landmark* lm, Vector2* v2d) : Feature(lm, v2d) {}
+    virtual void calDiff() {
+        vector<Point> cpyPoints;
+        for (int a = 0; a < lm->midPoint.size(); a++) {
+            for (int b = a + 1; b < lm->midPoint.size(); b++) {
+                lm->rFace.clear();
+
+                cpyPoints = shiftSymmetrically(lm->midPoint[a], lm->midPoint[b], lm->rEye);
+                eyeDiff.push_back(v2d->areaNonOverlap(cpyPoints, lm->lEye));
+                lm->rFace.insert(lm->rFace.end(), cpyPoints.begin(), cpyPoints.end());
+                cpyPoints.clear();
+
+                cpyPoints = shiftSymmetrically(lm->midPoint[a], lm->midPoint[b], lm->rNose);
+                noseDiff.push_back(v2d->areaNonOverlap(cpyPoints, lm->lNose));
+                lm->rFace.insert(lm->rFace.end(), cpyPoints.begin(), cpyPoints.end());
+                cpyPoints.clear();
+
+                cpyPoints = shiftSymmetrically(lm->midPoint[a], lm->midPoint[b], lm->rMouth);
+                mouthDiff.push_back(v2d->areaNonOverlap(cpyPoints, lm->lMouth));
+                lm->rFace.insert(lm->rFace.end(), cpyPoints.begin(), cpyPoints.end());
+                cpyPoints.clear();
+
+                cpyPoints = shiftSymmetrically(lm->midPoint[a], lm->midPoint[b], lm->rJaw);
+                jawDiff.push_back(v2d->areaNonOverlap(cpyPoints, lm->lJaw));
+                lm->rFace.insert(lm->rFace.end(), cpyPoints.begin(), cpyPoints.end());
+                cpyPoints.clear();
+
+                faceDiff.push_back(v2d->areaNonOverlap(lm->rFace, lm->lFace));
+                lm->rFace.clear();
+
+            }
+        }
+        this->diff.insert(this->diff.end(), eyeDiff.begin(), eyeDiff.end());
+        this->diff.insert(this->diff.end(), noseDiff.begin(), noseDiff.end());
+        this->diff.insert(this->diff.end(), mouthDiff.begin(), mouthDiff.end());
+        this->diff.insert(this->diff.end(), jawDiff.begin(), jawDiff.end());
+        this->diff.insert(this->diff.end(), faceDiff.begin(), faceDiff.end());
         
+        for(int i=0; i<faceDiff.size(); i++){
+            eyeMean += eyeDiff[i];
+            noseMean += noseDiff[i];
+            mouthMean += mouthDiff[i];
+            jawMean += jawDiff[i];
+            faceMean += faceDiff[i];
+        }
+        double sz = (double)faceDiff.size();
+        eyeMean /= sz;
+        noseMean /= sz;
+        mouthMean /= sz;
+        jawMean /= sz;
+        faceMean /= sz;
+    }
+
+    vector<Point> shiftSymmetrically(Point pt1, Point pt2, vector<Point> &part) {
+        vector<Point> res;
+        Point mL, tmp;
+        mL = pt1-pt2;
         if(mL.x==0) {
             for(int i=0; i<part.size(); i++){
-                part[i].x = pt2.x - (part[i].x - pt2.x);
+                tmp.x = pt2.x - (part[i].x - pt2.x);
+                tmp.y = part[i].y;
+                res.push_back(tmp);
             }
-            return;
+            return res;
         }
         double a = mL.y / mL.x;
         if(fabs(a)>10000.0) a = a>0 ? 10000.0 : -10000.0;
@@ -442,42 +500,11 @@ public:
             double ny = (2.0 * a * x - (1.0 - a * a) * y + 2.0 * b) / (1.0 + a * a);
             nx = round(nx * 10000.0) / 10000.0;
             ny = round(ny * 10000.0) / 10000.0;
-            part[i].x = nx;
-            part[i].y = ny;
+            tmp.x = nx;
+            tmp.y = ny;
+            res.push_back(tmp);
         }
-    }
-
-    void calFaceByPart() {
-        Point a,b;
-    
-        a = lm->all[39]+lm->all[42]; a.x /= 2.0; a.y /= 2.0;
-        //b = lm->all[27];
-        b = a;
-        b.y = b.y+2000.0;
-        beSymmetricalPoint(a,b,lm->rEye);
-        a = lm->all[27];
-        b = lm->all[33];
-        beSymmetricalPoint(a,b,lm->rNose);
-
-        a = lm->all[51];
-        b = lm->all[57];
-        beSymmetricalPoint(a,b,lm->rMouth);
-
-        a = lm->all[39]+lm->all[42]; a.x /= 2.0; a.y /= 2.0;
-        b = lm->all[33];
-        beSymmetricalPoint(a,b,lm->rJaw);
-        
-        lm->rFace.clear();
-        lm->rFace.insert(lm->rFace.end(), lm->rJaw.begin(), lm->rJaw.end());
-        lm->rFace.insert(lm->rFace.end(), lm->rNose.begin(), lm->rNose.end());
-        lm->rFace.insert(lm->rFace.end(), lm->rEye.begin(), lm->rEye.end());
-        lm->rFace.insert(lm->rFace.end(), lm->rMouth.begin(), lm->rMouth.end());
-
-        faceDiff = v2d->areaNonOverlap(lm->rFace, lm->lFace);
-        eyeDiff = v2d->areaNonOverlap(lm->rEye, lm->lEye);
-        noseDiff = v2d->areaNonOverlap(lm->rNose, lm->lNose);
-        mouthDiff = v2d->areaNonOverlap(lm->rMouth, lm->lMouth);
-        jawDiff = v2d->areaNonOverlap(lm->rJaw, lm->lJaw);
+        return res;
     }
 
 };
@@ -504,14 +531,15 @@ int main(int argc, char** args) {
     ft[1] = new Length(lm, v2d);
     ft[2] = new Angle(lm, v2d);
     ft[3] = new Area(lm, v2d);
+    ft[4] = new LocalSymmetry(lm, v2d);
     
-    for(int i=0; i<4; i++) {
+    for(int i=0; i<5; i++) {
         ft[i]->calDiff();
         ft[i]->calFig();
     }
 
     string result="";
-    for(int i=0; i<4; i++){
+    for(int i=0; i<5; i++){
         result += to_string(ft[i]->fg->mean); result += '\n';
         result += to_string(ft[i]->fg->median); result += '\n';
         result += to_string(ft[i]->fg->variance); result += '\n';
@@ -519,22 +547,43 @@ int main(int argc, char** args) {
         result += to_string(ft[i]->fg->skewness); result += '\n';
         result += to_string(ft[i]->fg->kurtosis); result += '\n';
     }
+    result += to_string(dd); result += '\n';
+    result += to_string(eos); result += '\n';
 
-    Area* areaObj = dynamic_cast<Area*>(ft[3]);
+    // making Score start //
+    LocalSymmetry* LSObj = dynamic_cast<LocalSymmetry*>(ft[4]);
+    double resScore = 0.0, eye=0.0, nose=0.0, mouth=0.0, jaw=0.0, face=0.0;
 
-    result += to_string(areaObj->eyeDiff); result += '\n';
-    result += to_string(areaObj->noseDiff); result += '\n';
-    result += to_string(areaObj->mouthDiff); result += '\n';
-    result += to_string(areaObj->jawDiff); result += '\n';
-    result += to_string(areaObj->faceDiff); result += '\n';
+    eye = LSObj->eyeMean + 0.132;
+    nose = LSObj->noseMean + 0.124;
+    mouth = LSObj->mouthMean + 0.059;
+    jaw = LSObj->jawMean + 0.078;
+    face = LSObj->faceMean + 0.030;
+    eye = eye > 1.0 ? 100.0 : eye*100;
+    nose = nose > 1.0 ? 100.0 : nose*100;
+    mouth = mouth > 1.0 ? 100.0 : mouth*100;
+    jaw = jaw > 1.0 ? 100.0 : jaw*100;
+    face = face > 1.0 ? 100.0 : face*100;
 
-    /*
-    ofstream out("C:\\Users\\ChanuiJeon\\Desktop\\landmarkResult\\result.txt");
+    resScore += eye;
+    resScore += nose;
+    resScore += mouth;
+    resScore += jaw;
+    resScore += face;
+    resScore /= 5.0;
+    // making Score end //
+    
+    result += to_string(eye); result += '\n';
+    result += to_string(nose); result += '\n';
+    result += to_string(mouth); result += '\n';
+    result += to_string(jaw); result += '\n';
+    result += to_string(face); result += '\n';
+    result += to_string(resScore); result += '\n';
+
+    ofstream out("C:\\Users\\ChanuiJeon\\Desktop\\landmarkResult\\result_0.txt");
     out<<result;
     out.close();
-    */
     
     cout<<result;
-
 }
 
