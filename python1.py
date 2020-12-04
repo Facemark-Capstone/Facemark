@@ -21,7 +21,7 @@ def extractLandmark(image) :
 def readImage(imageName) :
     #read image
     image = cv2.imread(imageName) 
-    image = cv2.resize(image,(864,1152))
+    image = cv2.resize(image,(768,1024))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
     #extract landmark
@@ -55,12 +55,12 @@ def rotateImage(image, points, angle) :
         p.x, p.y = list(map(int, rotate((w/2,h/2),(p.x,p.y),math.radians(angle))))
     return rotatedImage, points
 
-def cutImage(image, points) : 
-    centerPoint = points[29]
-    dx = math.ceil((points[16].x - points[39].x))
-    dy = math.ceil((points[8].y - points[29].y))
-    image = image[points[30].y-dy:points[30].y+dy+1,points[33].x-dx:points[33].x+dx+1]
 
+def cutImage(image, points):
+    centerPoint = points[29]
+    dx = math.ceil((points[14].x - points[27].x))
+    dy = math.ceil((points[9].y - points[29].y))
+    image = image[centerPoint.y - dy:centerPoint.y + dy + 1, centerPoint.x - dx:centerPoint.x + dx + 1]
     return image, dx
 
 
